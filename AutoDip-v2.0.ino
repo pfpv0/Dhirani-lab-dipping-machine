@@ -84,12 +84,12 @@ void loop() {
     joycycle();
     if (buttonStatus == 0) {
       joymode = false;
-      //moves to initial position
-      xMoveSteps(positions[0] - xposition, 1000);
-      cyclecount = 1;
       //recalibrates y-direction
       ymove(18000, true);
+      //moves to initial position
+      xMoveSteps(positions[0] - xposition, 1000);
       ymove(11000, false);
+      cyclecount = 1;
     }
     Serial.println(xposition);
   }
