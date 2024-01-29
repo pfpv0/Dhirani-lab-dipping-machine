@@ -1,4 +1,4 @@
-#include <LiquidCrystal_I2C.h>
+//#include <LiquidCrystal_I2C.h>
 #include "Dipper_and_Comms.h"
 
 // Sets pins for the stepper motor. xdirpin controls directions and xpulpin sends a pulse corresponding to a step
@@ -17,8 +17,8 @@
 #define joyButton 38
 
 Comms comms;
-LiquidCrystal_I2C LCD(0x27, A4, A5);
-Dipper dipper(dirpin, pulpin, upPin, downPin, limitPin, LCD);
+//LiquidCrystal_I2C LCD(0x27, 16, 2);
+DipperLCD dipper(dirpin, pulpin, upPin, downPin, limitPin);
 
 int xJoy0, yJoy0;
 
@@ -28,21 +28,19 @@ void setup() {
   delay(100);
   Serial.println("Serial connected");
 
+  dipper.doLCDsetup();
+
   xJoy0 = analogRead(xJoyPin);
   yJoy0 = analogRead(yJoyPin);
 
-  LCD.init();
-  LCD.backlight();
-  LCD.print("hello");
-
-  dipper.calibrateY();
-  dipper.calibrateX();
+  //dipper.calibrateY();
+  //dipper.calibrateX();
   dipper.xMoveSteps(1200); //Move left to not put strain on the switch
 }
 
 void loop() {
   comms.stops = 0;
-  LCD.clear();
+  dipper.LCD.clear();
   while (comms.beginJob == false) {
     int xJoyDiff = analogRead(xJoyPin) - xJoy0;
     int yJoyDiff = analogRead(yJoyPin) - yJoy0;
@@ -61,18 +59,10 @@ void loop() {
 }
 
 void setUpPins() {
-  //Sets pins as outputs
-  pinMode(dirpin, OUTPUT);
-  pinMode(pulpin, OUTPUT);
-
-  pinMode(upPin, OUTPUT);
-  pinMode(downPin, OUTPUT);
-
-  //pinMode(killerPin, INPUT);
   pinMode(xJoyPin, INPUT);
   pinMode(yJoyPin, INPUT);
   pinMode(joyButton, INPUT_PULLUP);
 
 
-  pinMode(limitPin, INPUT_PULLUP);
+  //pinMode(limitPin, INPUT_PULLUP);
 }

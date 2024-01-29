@@ -3,21 +3,21 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 
-class Dipper {
+class DipperLCD {
 private:
   int tolerance = 20;  //Tolerance for the joystick
   int posmax = 20000;  //Maximum displacement from 0 in units of steps
 
   //Pins for horizontal movement
-  byte xdirpin;
-  byte xpulpin;
+  byte _xdirpin;
+  byte _xpulpin;
 
   //pins for verticla movement
-  byte uppin;
-  byte downpin;
+  byte _uppin;
+  byte _downpin;
 
   //limit switch pin
-  byte limitpin;
+  byte _limitpin;
 
   int position;            //Position, in steps, of the stepper motor
   int opheight = 13000;    //Height in milliseconds that the linear actuator lowers
@@ -26,8 +26,6 @@ private:
 
   //True if an LCD is passed in the contructor
   bool LCDon = false;
-  //LCD display
-  LiquidCrystal_I2C& LCD;
 
   //Sends a single pulse to the stepper
   void doStep();
@@ -35,12 +33,14 @@ private:
 
 public:
   //Contructor without the LED screen
-  Dipper(byte xdp, byte xpp, byte up, byte dp, byte lp);
+  DipperLCD(byte xdp, byte xpp, byte up, byte dp, byte lp);
 
-  //Contructor with the LED screen
-  Dipper(byte xdp, byte xpp, byte up, byte dp, byte lp, LiquidCrystal_I2C lcd);
+  //LCD display
+  LiquidCrystal_I2C LCD{0x27, 16, 2};
 
   //
+  void doLCDsetup();
+
   void xMoveSteps(int steps);
 
   void xMoveTo(int finalPlace);

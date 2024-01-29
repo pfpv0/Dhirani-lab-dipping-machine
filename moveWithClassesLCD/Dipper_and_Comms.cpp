@@ -1,73 +1,53 @@
 #include "Dipper_and_Comms.h"
-#include "Arduino.h"
-#include "LiquidCrystal_I2C.h"
 
-Dipper::Dipper(byte xdp, byte xpp, byte up, byte dp, byte lp) {
-  xdirpin = xdp;
-  xpulpin = xpp;
-  uppin = up;
-  downpin = dp;
-  limitpin = lp;
+DipperLCD::DipperLCD(byte xdp, byte xpp, byte up, byte dp, byte lp) {
+  _xdirpin = xdp;
+  _xpulpin = xpp;
+  _uppin = up;
+  _downpin = dp;
+  _limitpin = lp;
 
   //Sets pins as outputs
-  pinMode(xdirpin, OUTPUT);
-  pinMode(xpulpin, OUTPUT);
+  pinMode(_xdirpin, OUTPUT);
+  pinMode(_xpulpin, OUTPUT);
 
-  pinMode(uppin, OUTPUT);
-  pinMode(downpin, OUTPUT);
+  pinMode(_uppin, OUTPUT);
+  pinMode(_downpin, OUTPUT);
 
-  pinMode(limitpin, INPUT_PULLUP);
+  pinMode(_limitpin, INPUT_PULLUP);
 
   position = 0;
 }
 
-Dipper::Dipper(byte xdp, byte xpp, byte up, byte dp, byte lp, LiquidCrystal_I2C lcd) {
-  xdirpin = xdp;
-  xpulpin = xpp;
-  uppin = up;
-  downpin = dp;
-  limitpin = lp;
-
-  LCD = lcd;
+void DipperLCD::doLCDsetup(){
   LCD.init();
+  LCD.clear();
   LCD.backlight();
   LCD.print("hello");
-  
-  //Sets pins as outputs
-  pinMode(xdirpin, OUTPUT);
-  pinMode(xpulpin, OUTPUT);
-
-  pinMode(uppin, OUTPUT);
-  pinMode(downpin, OUTPUT);
-
-  pinMode(limitpin, INPUT_PULLUP);
-
-  position = 0;
-  LCDon = true;
 }
 
-void Dipper::doStep() {
-  digitalWrite(31, HIGH);
+void DipperLCD::doStep() {
+  digitalWrite(_xpulpin, HIGH);
   delayMicroseconds(pulse_speed);
-  digitalWrite(31, LOW);
+  digitalWrite(_xpulpin, LOW);
   delayMicroseconds(pulse_speed);
 }
-void Dipper::xMoveSteps(int steps) {
+void DipperLCD::xMoveSteps(int steps) {
 
   //Sets the direction of movement
   int dir;
   int speeddelay = 1000;
 
   if (steps < 0) {
-    digitalWrite(xdirpin, HIGH);
+    digitalWrite(_xdirpin, HIGH);
     dir = -1;
   } else {
-    digitalWrite(xdirpin, LOW);
+    digitalWrite(_xdirpin, LOW);
     dir = +1;
   }
 
   for (int i = 0; i < abs(steps); i++) {
-    int limitVal = digitalRead(limitpin);
+    int limitVal = digitalRead(_limitpin);
 
     if (limitVal == 0 && steps < 0) {
       break;
@@ -81,46 +61,46 @@ void Dipper::xMoveSteps(int steps) {
     position += dir;
   }
 }
-void Dipper::xMoveTo(int finalPlace) {
+void DipperLCD::xMoveTo(int finalPlace) {
   xMoveSteps(finalPlace - position);
 }
-void Dipper::yMoveTime(int time, bool up) {
+void DipperLCD::yMoveTime(int time, bool up) {
   if (up == true) {
-    digitalWrite(uppin, HIGH);
-    digitalWrite(downpin, LOW);
+    digitalWrite(_uppin, HIGH);
+    digitalWrite(_downpin, LOW);
     delay(time);
   } else {
-    digitalWrite(uppin, LOW);
-    digitalWrite(downpin, HIGH);
+    digitalWrite(_uppin, LOW);
+    digitalWrite(_downpin, HIGH);
     delay(time);
   }
 
-  digitalWrite(uppin, LOW);
-  digitalWrite(downpin, LOW);
+  digitalWrite(_uppin, LOW);
+  digitalWrite(_downpin, LOW);
 }
-void Dipper::diamond(bool dir) {
+void DipperLCD::diamond(bool dir) {
   int rinse_steps = 200;
   int rinse_delay = 50;
 
-  digitalWrite(uppin, LOW);
-  digitalWrite(downpin, HIGH);
-  digitalWrite(xdirpin, dir);
+  digitalWrite(_uppin, LOW);
+  digitalWrite(_downpin, HIGH);
+  digitalWrite(_xdirpin, dir);
   for (int i = 0; i < rinse_steps; i++) {
     doStep();
   }
 
   delay(rinse_delay);
 
-  digitalWrite(xdirpin, !dir);
+  digitalWrite(_xdirpin, !dir);
   for (int i = 0; i < rinse_steps; i++) {
     doStep();
   }
 
   delay(rinse_delay);
 
-  digitalWrite(uppin, HIGH);
-  digitalWrite(downpin, LOW);
-  digitalWrite(xdirpin, !dir);
+  digitalWrite(_uppin, HIGH);
+  digitalWrite(_downpin, LOW);
+  digitalWrite(_xdirpin, !dir);
 
   for (int i = 0; i < rinse_steps; i++) {
     doStep();
@@ -128,16 +108,16 @@ void Dipper::diamond(bool dir) {
 
   delay(rinse_delay);
 
-  digitalWrite(xdirpin, dir);
+  digitalWrite(_xdirpin, dir);
 
   for (int i = 0; i < rinse_steps; i++) {
     doStep();
   }
 
-  digitalWrite(uppin, LOW);
-  digitalWrite(downpin, LOW);
+  digitalWrite(_uppin, LOW);
+  digitalWrite(_downpin, LOW);
 }
-void Dipper::dip(int diptime) {
+void DipperLCD::dip(int diptime) {
   yMoveTime(opheight, false);
 
   unsigned long current_time = millis();
@@ -149,7 +129,7 @@ void Dipper::dip(int diptime) {
 
   yMoveTime(opheight + 2500, true);
 }
-void Dipper::rinse(int rinse_cycles) {
+void DipperLCD::rinse(int rinse_cycles) {
   yMoveTime(opheight - 200, false);
   for (int i = 0; i < rinse_cycles; i++) {
     if (i % 2 == 0) {
@@ -160,23 +140,25 @@ void Dipper::rinse(int rinse_cycles) {
   }
   yMoveTime(opheight + 2700, true);
 }
-void Dipper::doDipSequence(int layers, int position_array[], int time_array[], int wash_array[], int stops) {
+void DipperLCD::doDipSequence(int layers, int position_array[], int time_array[], int wash_array[], int stops) {
+  Serial.println("Starting procedure");
   for (int i = 0; i < layers; i++) {
     for (int j = 0; j < stops; j++) {
-      Serial.print("Layer: ");
+      Serial.print("Layer number: ");
       Serial.print(i + 1);
       Serial.print(" Stop: ");
       Serial.println(j + 1);
 
-      LCD.clear();
+      /*
+      _LCD.clear();
+      _LCD.setCursor(0, 0);
+      _LCD.print("Layer: ");
+      _LCD.print(i + 1);
 
-      LCD.setCursor(0, 0);
-      LCD.print("Layer: ");
-      LCD.print(i + 1);
-
-      LCD.setCursor(0, 1);
-      LCD.print("Stop: ");
-      LCD.print(j + 1);
+      _LCD.setCursor(0, 1);
+      _LCD.print("Stop: ");
+      _LCD.print(j + 1);
+      */
 
       xMoveTo(position_array[j]);
       if (wash_array[j] == 0) {
@@ -190,35 +172,38 @@ void Dipper::doDipSequence(int layers, int position_array[], int time_array[], i
   Serial.println("Country roads, take me home!");
   xMoveTo(position_array[0]);
 }
-void Dipper::calibrateX() {
-  int limitval = digitalRead(limitpin);
-  digitalWrite(xdirpin, HIGH);
+void DipperLCD::calibrateX() {
+    Serial.println("Calibrating horizontal...");
+
+  int limitval = digitalRead(_limitpin);
+  digitalWrite(_xdirpin, HIGH);
 
   while (limitval == 1) {
-    limitval = digitalRead(limitpin);
+    limitval = digitalRead(_limitpin);
 
     doStep();
   }
 
   position = 0;
 }
-void Dipper::calibrateY() {
+void DipperLCD::calibrateY() {
+  Serial.println("Calibrating vertical...");
   yMoveTime(19000, true);
 }
-void Dipper::joystick(int xval, int yval) {
+void DipperLCD::joystick(int xval, int yval) {
   int dir;
   static int prev_position = position;
 
   if (abs(xval) > tolerance) {
     if (xval < 0) {
-      digitalWrite(xdirpin, LOW);
+      digitalWrite(_xdirpin, LOW);
       dir = 1;
     } else {
-      digitalWrite(xdirpin, HIGH);
+      digitalWrite(_xdirpin, HIGH);
       dir = -1;
     }
 
-    int limitval = digitalRead(limitpin);
+    int limitval = digitalRead(_limitpin);
 
     if (limitval == 1 || (limitval == 0 && xval < 0)) {
       doStep();
@@ -230,28 +215,21 @@ void Dipper::joystick(int xval, int yval) {
       Serial.print(0.025 * position);
       Serial.println(" mm");
 
-      if (LCDon == true) {
-        LCD.clear();
-        LCD.setCursor(0, 0);
-        LCD.print("Position: ");
-        LCD.print(0.025 * position);
-        LCD.print(" mm");
-      }
       prev_position = position;
     }
   }
 
   if (yval < -1 * tolerance) {
     //moves down
-    digitalWrite(uppin, HIGH);
-    digitalWrite(downpin, LOW);
+    digitalWrite(_uppin, HIGH);
+    digitalWrite(_downpin, LOW);
   } else if (yval > tolerance) {
     //moves up
-    digitalWrite(uppin, LOW);
-    digitalWrite(downpin, HIGH);
+    digitalWrite(_uppin, LOW);
+    digitalWrite(_downpin, HIGH);
   } else {
-    digitalWrite(uppin, LOW);
-    digitalWrite(downpin, LOW);
+    digitalWrite(_uppin, LOW);
+    digitalWrite(_downpin, LOW);
   }
 }
 
